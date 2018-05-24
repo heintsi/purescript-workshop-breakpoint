@@ -24,50 +24,50 @@ tests = do
         "Hey there, Matti Meikäläinen!"
         (sayHi { firstName: "Matti", lastName: "Meikäläinen" })
 
-    testSkip "2 concatenating arrays" do
+    test "2 concatenating arrays" do
       Assert.equal
         [2, 5, 7, 3, 6, 8]
         (mergeUserIds [2, 5, 7] [3, 6, 8])
 
-    testSkip "3 merging optional results" do
+    test "3 merging optional results" do
       Assert.equal
         (Just [1, 2, 3, 4, 5])
         (mergeOptionalResults (Just [1, 2]) Nothing (Just [3, 4, 5]))
-    
-    testSkip "4 adds ten to each value in the array" do
+
+    test "4 adds ten to each value in the array" do
       Assert.equal
         [15, 25, 35]
         (addTenToArrayValues [5, 15, 25])
-        
-    testSkip "5 does nothing if array is empty" do
+
+    test "5 does nothing if array is empty" do
       Assert.equal
         []
         (addTenToArrayValues [])
-        
-    testSkip "6 adds ten to a maybe value, if there is a value" do
+
+    test "6 adds ten to a maybe value, if there is a value" do
       Assert.equal
         (Just 110)
         (addTenToMaybeValue (Just 100))
-        
-    testSkip "7 does nothing if there is no value" do
+
+    test "7 does nothing if there is no value" do
       Assert.equal
         Nothing
         (addTenToMaybeValue Nothing)
-        
-    testSkip "8 adds ten to the value on the right side of an Either" do
+
+    test "8 adds ten to the value on the right side of an Either" do
       Assert.equal
         (Right 110)
         (addTenToEitherValue (Right 100))
-    testSkip "9 does nothing if there is an error on the left side" do
+    test "9 does nothing if there is an error on the left side" do
       Assert.equal
         (Left "error")
         (addTenToEitherValue (Left "error"))
 
-    testSkip "10 add ten to the result of an asynchronous network call" do
+    test "10 add ten to the result of an asynchronous network call" do
       result <- addTenToNetworkResponse validNetworkResponse
       Assert.equal 110 result
-      
-    testSkip "11 add ten to anything you can map over (like all of the above)" do
+
+    test "11 add ten to anything you can map over (like all of the above)" do
       Assert.equal [15, 25, 35] (addTen [5, 15, 25])
       Assert.equal [] (addTen [])
       Assert.equal (Just 110) (addTen (Just 100))
@@ -78,25 +78,25 @@ tests = do
       Assert.equal 110 result
 
     -- Example: encoding JSON using type classes
-    testSkip "12 encoding JSON" do
+    test "12 encoding JSON" do
       Assert.equal "1" (SimpleJson.writeJSON 1)
       Assert.equal "[]" (SimpleJson.writeJSON ([] :: Array Int))
       Assert.equal "{\"userId\":343223}" (SimpleJson.writeJSON {userId: 343223})
       Assert.equal
         "{\"author\":{\"login\":\"paf31\",\"id\":630306}}"
         (SimpleJson.writeJSON {author: {login: "paf31", id: 630306}})
-        
-    testSkip "13 decoding JSON: parse the URL of the first PureScript commit" do
+
+    test "13 decoding JSON: parse the URL of the first PureScript commit" do
       Assert.equal
         (Right "https://api.github.com/repos/purescript/purescript/commits/291a6d4ddd88c65a8a0c5368441c1b7c639ca854")
         (parseUrlFromResponse firstPureScriptCommit)
-        
-    testSkip "14 parse the SHA commit hash for first PureScript commit" do
+
+    test "14 parse the SHA commit hash for first PureScript commit" do
       Assert.equal
         (Right "291a6d4ddd88c65a8a0c5368441c1b7c639ca854")
         (parseCommitFromResponse firstPureScriptCommit)
-        
-    testSkip "15 parse the author of the first PureScript commit" do
+
+    test "15 parse the author of the first PureScript commit" do
       Assert.equal
         (Right "Phil Freeman")
         (parseAuthorFromResponse firstPureScriptCommit)
@@ -223,31 +223,34 @@ type User =
   , lastName :: String }
 
 sayHi :: User -> String
-sayHi _ = "fixme"
+sayHi { firstName: f, lastName: l } = "Hey there, " <> f <> " " <> l <> "!"
 
 mergeUserIds :: Array Int -> Array Int -> Array Int
-mergeUserIds ids1 ids2 = []
+mergeUserIds ids1 ids2 = ids1 <> ids2
 
 mergeOptionalResults :: Maybe (Array Int) -> Maybe (Array Int) -> Maybe (Array Int) -> Maybe (Array Int)
-mergeOptionalResults a b c = Nothing
+mergeOptionalResults a b c = a <> b <> c
 
 addTenToArrayValues :: Array Int -> Array Int
-addTenToArrayValues ints = []
+addTenToArrayValues ints = map addTen ints
+  where addTen i = i + 10
 
 addTenToMaybeValue :: Maybe Int -> Maybe Int
-addTenToMaybeValue int = Nothing
+addTenToMaybeValue (Just int) = Just (int + 10)
+addTenToMaybeValue _ = Nothing
 
 addTenToEitherValue :: Either String Int -> Either String Int
-addTenToEitherValue result = Left "fixme"
+addTenToEitherValue (Right result) = Right (result + 10)
+addTenToEitherValue (Left result)  = Left result
 
 validNetworkResponse :: Aff _ Int
 validNetworkResponse = pure 100
 
 addTenToNetworkResponse :: Aff _ Int -> Aff _ Int
-addTenToNetworkResponse response = response
+addTenToNetworkResponse response = map ((+) 10) response
 
 addTen :: forall f. Functor f => f Int -> f Int
-addTen f = f
+addTen f = map ((+) 10) f
 
 parseUrlFromResponse :: String -> Either MultipleErrors String
 parseUrlFromResponse respStr = map parseUrl (SimpleJson.readJSON respStr)
@@ -256,7 +259,13 @@ parseUrlFromResponse respStr = map parseUrl (SimpleJson.readJSON respStr)
     parseUrl resp = resp.url
 
 parseCommitFromResponse :: String -> Either MultipleErrors String
-parseCommitFromResponse respStr = Right "fixme"
-      
+parseCommitFromResponse respStr = map parseCommitHash (SimpleJson.readJSON respStr)
+  where
+    parseCommitHash :: { sha :: String } -> String
+    parseCommitHash resp = resp.sha
+
 parseAuthorFromResponse :: String -> Either MultipleErrors String
-parseAuthorFromResponse respStr = Right "fixme"
+parseAuthorFromResponse respStr = map parseAuthor (SimpleJson.readJSON respStr)
+  where
+    parseAuthor :: { commit :: { author :: { name :: String } } } -> String
+    parseAuthor resp = resp.commit.author.name
