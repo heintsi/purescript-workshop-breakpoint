@@ -16,11 +16,15 @@ tests = do
   suite "Ex 3 (FFI)" do
     test "1 Format a date using MomentJS" do
       Assert.equal "June 1st 2018, 7:37:15 am" (formatDate "2018-06-01 07:37:15")
-    testSkip "2 Add two numbers using JavaScript" do
+    test "2 Add two numbers using JavaScript" do
       Assert.equal 17 (addNumbers 12 5)
 
+foreign import formatDateWithMoment :: String -> String
+
 formatDate :: String -> String
-formatDate dateStr = "fixme"
+formatDate = formatDateWithMoment
+
+foreign import addNums :: Int -> Int -> Int
 
 addNumbers :: Int -> Int -> Int
-addNumbers a b = 0
+addNumbers a b = add a b
